@@ -29,6 +29,8 @@ def equalize_histogram(img,img_type,in_nodata,out_nodata):
     else:
         outDs = driver.Create(out_path, cols, rows, n_bands, GDT_Float32)
 
+    pdf = {}
+    
     for b in range(n_bands):
         b+=1
         band = inDs.GetRasterBand(b)
@@ -37,16 +39,24 @@ def equalize_histogram(img,img_type,in_nodata,out_nodata):
         value_list = sorted([i for i in freq])
         size = cols*rows - freq[in_nodata]
         value_list.remove(in_nodata)
-        pdf = {}
+        
         for val in value_list:
-            pdf[val] = float(freq[val])/size
-        cdf = {}
-        summing = 0
-        for val in value_list:
-            summing += pdf[val]
-            cdf[val] = summing*scale
+            if val in pdf:
+                pdf[val] += float(freq[val])/size
+            else:
+                pdf[val] = float(freq[val])/size
+        
+    cdf = {}
+    summing = 0
+    for val in value_list:
+        summing += pdf[val]
+        cdf[val] = summing*scale
+    
 
-
+    for b in range(n_bands):
+        b+=1
+        band = inDs.GetRasterBand(b)
+        rasterArray = band.ReadAsArray(0,0,cols,rows)
         if img_type != 32:
             if img_type == 16:
                 outData = np.zeros((rows,cols), np.uint16)
