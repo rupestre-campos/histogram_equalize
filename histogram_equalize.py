@@ -59,12 +59,15 @@ def equalize_histogram(img,img_type,in_nodata,out_nodata):
 
         for i in range(0, rows):
             for j in range(0, cols):
-                outData[i,j] = cdf[rasterArray[i,j]]
+                cell_value = rasterArray[i,j]
+                if cell_value != in_nodata:
+                    outData[i,j] = cdf[cell_value]
                         
         outBand.WriteArray(outData, 0, 0)
         # flush data to disk, set the NoData value and calculate stats
-        outBand.FlushCache()
         outBand.SetNoDataValue(out_nodata)
+        outBand.FlushCache()
+        outBand = None
         del outData
 
     outDs.SetGeoTransform(inDs.GetGeoTransform())
