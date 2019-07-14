@@ -23,11 +23,11 @@ def equalize_histogram(img,img_type,in_nodata,out_nodata):
     out_path = '{}_hist{}'.format(img[:-4],img[-4:])
     if img_type != 32:
         if img_type == 16:
-            outDs = driver.Create(out_path, cols, rows, 1, GDT_Int16)
+            outDs = driver.Create(out_path, cols, rows, n_bands, GDT_Int16)
         elif img_type == 8:
-            outDs = driver.Create(out_path, cols, rows, 1, GDT_Byte)  
+            outDs = driver.Create(out_path, cols, rows, n_bands, GDT_Byte)  
     else:
-        outDs = driver.Create(out_path, cols, rows, 1, GDT_Float32)
+        outDs = driver.Create(out_path, cols, rows, n_bands, GDT_Float32)
 
     for b in range(n_bands):
         b+=1
