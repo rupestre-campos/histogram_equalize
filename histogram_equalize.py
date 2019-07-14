@@ -7,6 +7,12 @@ import sys
 import time
 from collections import defaultdict
 
+def dsum(*dicts):
+    ret = defaultdict(int)
+    for d in dicts:
+        for k, v in d.items():
+            ret[k] += v
+    return dict(ret)
 
 def equalize_histogram(img,img_type,in_nodata,out_nodata):
     call('gdal_edit -a_nodata {} {}'.format(in_nodata,img),shell=True)
@@ -33,14 +39,19 @@ def equalize_histogram(img,img_type,in_nodata,out_nodata):
 
     pdf = defaultdict(int)
     print("computing pdf...")
-    size = cols*rows*n_bands
+    
+    freq_tot = {}
     for b in range(n_bands):
         b+=1
         band = inDs.GetRasterBand(b)
         rasterArray = band.ReadAsArray(0,0,cols,rows)
         freq = Counter(rasterArray.flatten())
-        for val in freq:
-            pdf[val] += float(freq[val])/size
+
+        freq_tot = dsum(freq_tot,freq)
+    
+    size = cols*rows*n_bands - freq_tot[in_nodata]
+    for val in freq_tot:
+        pdf[val] += float(freq_tot[val])/size
 
     print("computing cdf...")    
     value_list = sorted([i for i in pdf])
