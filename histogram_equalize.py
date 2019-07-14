@@ -36,16 +36,15 @@ def equalize_histogram(img,img_type,in_nodata,out_nodata):
         band = inDs.GetRasterBand(b)
         rasterArray = band.ReadAsArray(0,0,cols,rows)
         freq = Counter(rasterArray.flatten())
-        value_list = sorted([i for i in freq])
         size = cols*rows - freq[in_nodata]
-        value_list.remove(in_nodata)
-        
-        for val in value_list:
+        for val in freq:
             if val in pdf:
                 pdf[val] += float(freq[val])/size
             else:
                 pdf[val] = float(freq[val])/size
-        
+    
+    value_list = sorted([i for i in pdf])
+    value_list.remove(in_nodata)
     cdf = {}
     summing = 0
     for val in value_list:
