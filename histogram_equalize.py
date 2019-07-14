@@ -43,7 +43,7 @@ def equalize_histogram(img,out_img_type,in_nodata,out_nodata):
             summing += pdf[val]
             cdf[val] = summing*scale
 
-        out_path = '{}_hist.tif'.format(img[:-4])
+        out_path = '{}_hist{}'.format(img[:-4],img[-4:])
         if img_type != 32:
             if img_type == 16:
                 outData = np.zeros((rows,cols), np.uint16)
