@@ -86,7 +86,6 @@ def timeExec(time1,time2):
         sys.stdout.write("Time: {} days\n".format(time))
 
 def main():
-    print(sys.argv)
     img = sys.argv[1]
     out_img_type = int(sys.argv[2])
     in_nodata = int(sys.argv[3])
