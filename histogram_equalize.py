@@ -6,7 +6,7 @@ from subprocess import call
 import sys
 import time
 
-def equalize_histogram(img,out_img_type,in_nodata,out_nodata):
+def equalize_histogram(img,img_type,in_nodata,out_nodata):
     call('gdal_edit -a_nodata {} {}'.format(in_nodata,img),shell=True)
     if img_type == 8:
         scale = 255
@@ -19,7 +19,8 @@ def equalize_histogram(img,out_img_type,in_nodata,out_nodata):
     driver = inDs.GetDriver()
     rows = inDs.RasterYSize
     cols = inDs.RasterXSize
-    size = cols*rows 
+    size = cols*rows
+    out_path = '{}_hist{}'.format(img[:-4],img[-4:])
     if img_type != 32:
         if img_type == 16:
             outDs = driver.Create(out_path, cols, rows, 1, GDT_Int16)
@@ -43,7 +44,7 @@ def equalize_histogram(img,out_img_type,in_nodata,out_nodata):
             summing += pdf[val]
             cdf[val] = summing*scale
 
-        out_path = '{}_hist{}'.format(img[:-4],img[-4:])
+
         if img_type != 32:
             if img_type == 16:
                 outData = np.zeros((rows,cols), np.uint16)
@@ -85,10 +86,11 @@ def timeExec(time1,time2):
         sys.stdout.write("Time: {} days\n".format(time))
 
 def main():
-    img = sys.argv[2]
-    out_img_type = int(sys.argv[3])
-    in_nodata = int(sys.argv[4])
-    out_nodata = int(sys.argv[5])
+    print(sys.argv)
+    img = sys.argv[1]
+    out_img_type = int(sys.argv[2])
+    in_nodata = int(sys.argv[3])
+    out_nodata = int(sys.argv[4])
     time1 = time.time()
     print("starting to equalize...")
     result = equalize_histogram(img,out_img_type,in_nodata,out_nodata)
