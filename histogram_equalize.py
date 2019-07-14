@@ -5,6 +5,8 @@ import numpy as np
 from subprocess import call
 import sys
 import time
+from collections import defaultdict
+
 
 def equalize_histogram(img,img_type,in_nodata,out_nodata):
     call('gdal_edit -a_nodata {} {}'.format(in_nodata,img),shell=True)
@@ -29,20 +31,18 @@ def equalize_histogram(img,img_type,in_nodata,out_nodata):
     else:
         outDs = driver.Create(out_path, cols, rows, n_bands, GDT_Float32)
 
-    pdf = {}
-    
+    pdf = defaultdict(int)
+    print("computing pdf...")
+    size = cols*rows*n_bands
     for b in range(n_bands):
         b+=1
         band = inDs.GetRasterBand(b)
         rasterArray = band.ReadAsArray(0,0,cols,rows)
         freq = Counter(rasterArray.flatten())
-        size = cols*rows - freq[in_nodata]
         for val in freq:
-            if val in pdf:
-                pdf[val] += float(freq[val])/size
-            else:
-                pdf[val] = float(freq[val])/size
-    
+            pdf[val] += float(freq[val])/size
+
+    print("computing cdf...")    
     value_list = sorted([i for i in pdf])
     value_list.remove(in_nodata)
     cdf = {}
@@ -51,7 +51,7 @@ def equalize_histogram(img,img_type,in_nodata,out_nodata):
         summing += pdf[val]
         cdf[val] = summing*scale
     
-
+    print("converting band histograms...")
     for b in range(n_bands):
         b+=1
         band = inDs.GetRasterBand(b)
@@ -63,21 +63,17 @@ def equalize_histogram(img,img_type,in_nodata,out_nodata):
                 outData = np.zeros((rows,cols), np.uint8)            
         else:
             outData = np.zeros((rows,cols), np.float32)
-
         outBand = outDs.GetRasterBand(b)
-
         for i in range(0, rows):
             for j in range(0, cols):
                 cell_value = rasterArray[i,j]
                 if cell_value != in_nodata:
-                    outData[i,j] = cdf[cell_value]
-                        
+                    outData[i,j] = cdf[cell_value]            
         outBand.WriteArray(outData, 0, 0)
         # flush data to disk, set the NoData value and calculate stats
         outBand.SetNoDataValue(out_nodata)
         outBand.FlushCache()
-        outBand = None
-        del outData
+        outBand = outData = None
 
     outDs.SetGeoTransform(inDs.GetGeoTransform())
     outDs.SetProjection(inDs.GetProjection())
