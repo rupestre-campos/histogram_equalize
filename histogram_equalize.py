@@ -19,7 +19,7 @@ def equalize_histogram(img,img_type,in_nodata,out_nodata):
     driver = inDs.GetDriver()
     rows = inDs.RasterYSize
     cols = inDs.RasterXSize
-    size = cols*rows
+    
     out_path = '{}_hist{}'.format(img[:-4],img[-4:])
     if img_type != 32:
         if img_type == 16:
@@ -35,7 +35,7 @@ def equalize_histogram(img,img_type,in_nodata,out_nodata):
         rasterArray = band.ReadAsArray(0,0,cols,rows)
         freq = Counter(rasterArray.flatten())
         value_list = sorted([i for i in freq])
-        size = size - freq[in_nodata]
+        size = cols*rows - freq[in_nodata]
         value_list.remove(in_nodata)
         pdf = {}
         for val in value_list:
