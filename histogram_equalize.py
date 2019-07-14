@@ -35,9 +35,11 @@ def equalize_histogram(img,img_type,in_nodata,out_nodata):
         rasterArray = band.ReadAsArray(0,0,cols,rows)
         freq = Counter(rasterArray.flatten())
         value_list = sorted([i for i in freq])
+        size = size - freq[in_nodata]
+        value_list.remove(in_nodata)
         pdf = {}
-        for r in freq:
-            pdf[r] = float(freq[r])/size
+        for val in value_list:
+            pdf[val] = float(freq[val])/size
         cdf = {}
         summing = 0
         for val in value_list:
@@ -71,7 +73,7 @@ def equalize_histogram(img,img_type,in_nodata,out_nodata):
     rasterArray = outDs = None
     return out_path
 
-def timeExec(time1,time2):
+def time_exec(time1,time2):
     time = time2 - time1
     if time < 60:
         sys.stdout.write("\tTime: {:.2f} seconds\n".format(time))
@@ -95,7 +97,7 @@ def main():
     result = equalize_histogram(img,out_img_type,in_nodata,out_nodata)
     time2 = time.time()
     sys.stdout.write("image equalized:{} \n".format(result))
-    timeExec(time1,time2)
+    time_exec(time1,time2)
 
 if __name__ == "__main__":
     main()
