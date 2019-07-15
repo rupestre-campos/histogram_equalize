@@ -14,6 +14,18 @@ def dsum(*dicts):
             ret[k] += v
     return dict(ret)
 
+def read_histograms(n_bands,in_ds,cols,rows):
+    freq_tot = {}
+    for b in range(n_bands):
+        b+=1
+        band = in_ds.GetRasterBand(b)
+        rasterArray = band.ReadAsArray(0,0,cols,rows)
+        unique, counts = np.unique(rasterArray.flatten(), return_counts=True)
+        freq = dict(zip(unique,counts))
+        #freq = Counter(rasterArray.flatten())
+        freq_tot = dsum(freq_tot,freq)
+    return freq_tot
+
 def equalize_histogram(img,img_type,in_nodata,out_nodata):
     call('gdal_edit -a_nodata {} {}'.format(in_nodata,img),shell=True)
     if img_type == 8:
@@ -22,37 +34,26 @@ def equalize_histogram(img,img_type,in_nodata,out_nodata):
         scale = 65535
     elif img_type == 32:
         scale = 1
-    inDs = gdal.Open(img)
-    n_bands = inDs.RasterCount
-    driver = inDs.GetDriver()
-    rows = inDs.RasterYSize
-    cols = inDs.RasterXSize
-    
+    in_ds = gdal.Open(img)
+    n_bands = in_ds.RasterCount
+    driver = in_ds.GetDriver()
+    rows = in_ds.RasterYSize
+    cols = in_ds.RasterXSize
     out_path = '{}_hist{}'.format(img[:-4],img[-4:])
     if img_type != 32:
         if img_type == 16:
-            outDs = driver.Create(out_path, cols, rows, n_bands, GDT_Int16)
+            out_ds = driver.Create(out_path, cols, rows, n_bands, GDT_Int16)
         elif img_type == 8:
-            outDs = driver.Create(out_path, cols, rows, n_bands, GDT_Byte)  
+            out_ds = driver.Create(out_path, cols, rows, n_bands, GDT_Byte)  
     else:
-        outDs = driver.Create(out_path, cols, rows, n_bands, GDT_Float32)
-
+        out_ds = driver.Create(out_path, cols, rows, n_bands, GDT_Float32)
     pdf = defaultdict(int)
     print("computing pdf...")
-    
-    freq_tot = {}
-    for b in range(n_bands):
-        b+=1
-        band = inDs.GetRasterBand(b)
-        rasterArray = band.ReadAsArray(0,0,cols,rows)
-        freq = Counter(rasterArray.flatten())
+    freq_tot = read_histograms(n_bands,in_ds,cols,rows)
 
-        freq_tot = dsum(freq_tot,freq)
-    
     size = cols*rows*n_bands - freq_tot[in_nodata]
     for val in freq_tot:
         pdf[val] += float(freq_tot[val])/size
-
     print("computing cdf...")    
     value_list = sorted([i for i in pdf])
     value_list.remove(in_nodata)
@@ -60,37 +61,40 @@ def equalize_histogram(img,img_type,in_nodata,out_nodata):
     summing = 0
     for val in value_list:
         summing += pdf[val]
-        cdf[val] = summing*scale
-    
+        new_val = summing*scale
+        if new_val == 0:
+            new_val = 1
+        cdf[val] = new_val
     print("converting band histograms...")
     for b in range(n_bands):
         b+=1
-        band = inDs.GetRasterBand(b)
-        rasterArray = band.ReadAsArray(0,0,cols,rows)
+        band = in_ds.GetRasterBand(b)
+        raster_array = band.ReadAsArray(0,0,cols,rows)
         if img_type != 32:
             if img_type == 16:
-                outData = np.zeros((rows,cols), np.uint16)
+                out_data = np.zeros((rows,cols), np.uint16)
             elif img_type == 8:
-                outData = np.zeros((rows,cols), np.uint8)            
+                out_data = np.zeros((rows,cols), np.uint8)            
         else:
-            outData = np.zeros((rows,cols), np.float32)
-        outBand = outDs.GetRasterBand(b)
-        for i in range(0, rows):
-            for j in range(0, cols):
-                cell_value = rasterArray[i,j]
-                if cell_value != in_nodata:
-                    outData[i,j] = cdf[cell_value]            
-        outBand.WriteArray(outData, 0, 0)
-        # flush data to disk, set the NoData value and calculate stats
-        outBand.SetNoDataValue(out_nodata)
-        outBand.FlushCache()
-        outBand = outData = None
-
-    outDs.SetGeoTransform(inDs.GetGeoTransform())
-    outDs.SetProjection(inDs.GetProjection())
-    
-    rasterArray = outDs = None
+            out_data = np.zeros((rows,cols), np.float32)
+        out_data = write_data(raster_array,out_data,cdf,in_nodata,rows,cols)
+        out_band = out_ds.GetRasterBand(b)
+        out_band.WriteArray(out_data, 0, 0)
+        out_band.SetNoDataValue(out_nodata)
+        out_band.FlushCache()
+        out_band = out_data = None
+    out_ds.SetGeoTransform(in_ds.GetGeoTransform())
+    out_ds.SetProjection(in_ds.GetProjection())
+    raster_array = out_ds = in_ds = None
     return out_path
+
+def write_data(raster_array,out_data,cdf,in_nodata,rows,cols):
+    for i in range(0, rows):
+        for j in range(0, cols):
+            cell_value = raster_array[i,j]
+            if cell_value != in_nodata:
+                out_data[i,j] = cdf[cell_value]
+    return out_data
 
 def time_exec(time1,time2):
     time = time2 - time1
