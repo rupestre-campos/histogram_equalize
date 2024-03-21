@@ -1,10 +1,10 @@
-# Equalize sattelite image histogram
+# Equalize satellite image histogram
 
 it is used as follows:
 
 ```histogram_equalize.py img_path out_img_type in_nodata out_nodata```
 
-img_path: provide a valid path to a sattelite image file. Out file will be created at same path with same extension with '_hist' sufix.
+img_path: provide a valid path to a satellite image file. Out file will be created at same path with same extension with '_hist' sufix.
 
 out_img_type: provide a value from 32, 16 or 8. Use 32 for a result in range 0-1. Use 16 for range 0-65535 and 8 for range 0-255.
 
