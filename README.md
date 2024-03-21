@@ -13,11 +13,11 @@ in_nodata: supply a valid nodata
 out_nodata: supply a valid outdata
 
 ## Simple usage
-install QGIS with OSGEO4w 
+install GDAL suite and python (via qgis or OSGeo4W standalone)
 
-on OSGEO 4W shell command line type:
+on command line type:
 
-```python histogram_equalize.py d:\path\to\image.tif 8 0 0```
+```python histogram_equalize.py path/to/image.tif 8 0 0```
 
 Modify as you want.
 Not any garantee that it will work, still under development showing good results. Any suggestions are appreciated.
